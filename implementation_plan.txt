@@ -1,0 +1,4 @@
+Clone Medusa Next.js storefront starter → customize UI untuk halaman API Visualizer.
+Deploy storefront ke Vercel.
+Deploy Medusa server ke Railway sehingga Anda dapat memanggil products, stock, orders.
+Buat halaman /api-visualizer yang mem-fetch dan menampilkan: products API, inventory API, orders/cart API + 1 eksternal (exchange rate).
