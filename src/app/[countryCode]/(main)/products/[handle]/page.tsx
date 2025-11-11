@@ -53,21 +53,13 @@ export async function generateStaticParams() {
   }
 }
 
+// Since variants do not have their own images in the new data structure,
+// this function is simplified to always return the main product images.
 function getImagesForVariant(
   product: HttpTypes.StoreProduct,
   selectedVariantId?: string
 ) {
-  if (!selectedVariantId || !product.variants) {
-    return product.images
-  }
-
-  const variant = product.variants!.find((v) => v.id === selectedVariantId)
-  if (!variant || !variant.images.length) {
-    return product.images
-  }
-
-  const imageIdsMap = new Map(variant.images.map((i) => [i.id, true]))
-  return product.images!.filter((i) => imageIdsMap.has(i.id))
+  return product.images || []
 }
 
 export async function generateMetadata(props: Props): Promise<Metadata> {
@@ -79,10 +71,14 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
     notFound()
   }
 
-  const product = await listProducts({
+  const {
+    response: { products },
+  } = await listProducts({
     countryCode: params.countryCode,
     queryParams: { handle },
-  }).then(({ response }) => response.products[0])
+  })
+
+  const product = products[0]
 
   if (!product) {
     notFound()
@@ -110,16 +106,20 @@ export default async function ProductPage(props: Props) {
     notFound()
   }
 
-  const pricedProduct = await listProducts({
+  const {
+    response: { products },
+  } = await listProducts({
     countryCode: params.countryCode,
     queryParams: { handle: params.handle },
-  }).then(({ response }) => response.products[0])
+  })
 
-  const images = getImagesForVariant(pricedProduct, selectedVariantId)
+  const pricedProduct = products[0]
 
   if (!pricedProduct) {
     notFound()
   }
+
+  const images = getImagesForVariant(pricedProduct, selectedVariantId)
 
   return (
     <ProductTemplate

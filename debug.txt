@@ -1,25 +1,32 @@
-You are very close. The previous analysis was correct about the type of error, but we have found the last file that was missed.
+Problem 1: API Visualizer Crash (The TypeError)
+Your API Visualizer page is crashing with TypeError: Cannot read properties of undefined (reading 'products').
 
-Your new error is Error: Failed to fetch products from Fake Store API. This is different from the previous error, which was about categories.
+What's Happening:
 
-The error is happening on your main page (/us), which is this file: src/app/[countryCode]/(main)/page.tsx/(main)/page.tsx`].
+Your API Visualizer page (src/app/[countryCode]/(main)/api-visualizer/page.tsx) calls await listProducts(...) to get data/(main)/api-visualizer/page.tsx`].
 
-The Problem
-Your main page (page.tsx) loads the <FeaturedProducts /> component/(main)/page.tsx`].
+As we found in the last step, the file src/lib/data/products.ts is still making a live fetch call to the Fake Store API.
 
-The <FeaturedProducts /> component (in src/modules/home/components/featured-products/index.tsx) calls the function listProducts().
+That API call is failing. The catch block in your listProducts function is swallowing the error and causing the function to return undefined.
 
-The file src/lib/data/products.ts still contains live API calls to https://fakestoreapi.com.
+The API Visualizer page then receives undefined and tries to access undefined.response.products, which causes the TypeError and crashes the page.
 
-You successfully hardcoded the data for categories.ts and collections.ts, but the products.ts file is still trying to fetch live data, which is causing this final error.
+How to Fix It: You must do the same thing to src/lib/data/products.ts that you did to categories.ts and collections.ts: remove the fetch call and replace it with a hardcoded list of products. This will fix the crash.
 
-How to Fix It
-You need to do the exact same thing you did to categories.ts and collections.ts to the products.ts file.
+Problem 2: Product & Collection Page Errors (DYNAMIC_SERVER_USAGE)
+Your logs for pages like /us/products/1 and /us/collections/electronics are all failing with a 500 error and the digest DYNAMIC_SERVER_USAGE.
 
-Open the file src/lib/data/products.ts.
+What's Happening: This is a Next.js error. It means you are trying to use a dynamic function (like fetch, which is in your getProductByHandle and getCollectionByHandle functions) inside pages that Next.js is trying to build as static pages. Your product and collection page files need to be explicitly told to render dynamically (on the server, when a user requests them).
 
-Modify all functions in that file that use fetch(...) (like listProducts, getProductByHandle, and listProductsByCollection) to return hardcoded product data, just like you did for the other files.
+How to Fix It: You need to add the following line to the very top of these two files:
 
-Commit and push this final change to your GitHub repository.
+src/app/[countryCode]/(main)/products/[handle]/page.tsx/(main)/products/[handle]/page.tsx`]
 
-Redeploy on Vercel. This time, it will build using the code that has all API calls removed, and the error will be gone.
+src/app/[countryCode]/(main)/collections/[handle]/page.tsx/(main)/collections/[handle]/page.tsx`]
+
+Add this line to the top of both files:
+
+TypeScript
+
+export const dynamic = "force-dynamic"
+This tells Next.js to always render these pages dynamically, which will allow your (soon-to-be-fixed) data-fetching functions to run correctly.
