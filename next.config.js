@@ -1,6 +1,6 @@
 const checkEnvVariables = require("./check-env-variables")
 
-checkEnvVariables()
+// checkEnvVariables()
 
 /**
  * Medusa Cloud-related environment variables
@@ -26,6 +26,10 @@ const nextConfig = {
   },
   images: {
     remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "fakestoreapi.com",
+      },
       {
         protocol: "http",
         hostname: "localhost",

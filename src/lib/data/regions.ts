@@ -1,66 +1,50 @@
 "use server"
 
-import { sdk } from "@lib/config"
-import medusaError from "@lib/util/medusa-error"
 import { HttpTypes } from "@medusajs/types"
-import { getCacheOptions } from "./cookies"
 
-export const listRegions = async () => {
-  const next = {
-    ...(await getCacheOptions("regions")),
-  }
-
-  return sdk.client
-    .fetch<{ regions: HttpTypes.StoreRegion[] }>(`/store/regions`, {
-      method: "GET",
-      next,
-      cache: "force-cache",
-    })
-    .then(({ regions }) => regions)
-    .catch(medusaError)
+/**
+ * Mocked function to simulate listing regions.
+ * Returns an empty array as regions are not part of the Fake Store API.
+ */
+export const listRegions = async (): Promise<
+  HttpTypes.StoreRegion[] | undefined
+> => {
+  return []
 }
 
-export const retrieveRegion = async (id: string) => {
-  const next = {
-    ...(await getCacheOptions(["regions", id].join("-"))),
-  }
-
-  return sdk.client
-    .fetch<{ region: HttpTypes.StoreRegion }>(`/store/regions/${id}`, {
-      method: "GET",
-      next,
-      cache: "force-cache",
-    })
-    .then(({ region }) => region)
-    .catch(medusaError)
+/**
+ * Mocked function to simulate retrieving a region.
+ * Returns null as regions are not part of the Fake Store API.
+ */
+export const retrieveRegion = async (
+  id: string
+): Promise<HttpTypes.StoreRegion | null> => {
+  return null
 }
 
-const regionMap = new Map<string, HttpTypes.StoreRegion>()
-
-export const getRegion = async (countryCode: string) => {
-  try {
-    if (regionMap.has(countryCode)) {
-      return regionMap.get(countryCode)
-    }
-
-    const regions = await listRegions()
-
-    if (!regions) {
-      return null
-    }
-
-    regions.forEach((region) => {
-      region.countries?.forEach((c) => {
-        regionMap.set(c?.iso_2 ?? "", region)
-      })
-    })
-
-    const region = countryCode
-      ? regionMap.get(countryCode)
-      : regionMap.get("us")
-
-    return region
-  } catch (e: any) {
-    return null
+/**
+ * Mocked function to simulate getting a region by country code.
+ * Returns a default mock region to ensure the application can function.
+ */
+export const getRegion = async (
+  countryCode: string
+): Promise<HttpTypes.StoreRegion | null> => {
+  // Return a mock region to avoid breaking components that expect a region object
+  return {
+    id: "mock-region",
+    name: "Mock Region",
+    currency_code: "usd",
+    tax_rate: 0,
+    countries: [
+      {
+        id: "us",
+        iso_2: "us",
+        iso_3: "usa",
+        name: "United States",
+        display_name: "United States",
+      },
+    ],
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   }
 }

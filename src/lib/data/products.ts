@@ -1,17 +1,15 @@
 "use server"
 
-import { sdk } from "@lib/config"
-import { sortProducts } from "@lib/util/sort-products"
 import { HttpTypes } from "@medusajs/types"
+import { sortProducts } from "@lib/util/sort-products"
 import { SortOptions } from "@modules/store/components/refinement-list/sort-products"
-import { getAuthHeaders, getCacheOptions } from "./cookies"
-import { getRegion, retrieveRegion } from "./regions"
 
+/**
+ * Fetches a list of products from the Fake Store API and maps them to the Medusa product format.
+ */
 export const listProducts = async ({
   pageParam = 1,
   queryParams,
-  countryCode,
-  regionId,
 }: {
   pageParam?: number
   queryParams?: HttpTypes.FindParams & HttpTypes.StoreProductListParams
@@ -22,75 +20,69 @@ export const listProducts = async ({
   nextPage: number | null
   queryParams?: HttpTypes.FindParams & HttpTypes.StoreProductListParams
 }> => {
-  if (!countryCode && !regionId) {
-    throw new Error("Country code or region ID is required")
-  }
-
   const limit = queryParams?.limit || 12
-  const _pageParam = Math.max(pageParam, 1)
-  const offset = _pageParam === 1 ? 0 : (_pageParam - 1) * limit
+  const offset = (pageParam - 1) * limit
 
-  let region: HttpTypes.StoreRegion | undefined | null
-
-  if (countryCode) {
-    region = await getRegion(countryCode)
-  } else {
-    region = await retrieveRegion(regionId!)
+  // Fetch products from Fake Store API
+  const response = await fetch("https://fakestoreapi.com/products")
+  if (!response.ok) {
+    throw new Error("Failed to fetch products from Fake Store API")
   }
+  const fakeStoreProducts = await response.json()
 
-  if (!region) {
-    return {
-      response: { products: [], count: 0 },
-      nextPage: null,
-    }
-  }
-
-  const headers = {
-    ...(await getAuthHeaders()),
-  }
-
-  const next = {
-    ...(await getCacheOptions("products")),
-  }
-
-  return sdk.client
-    .fetch<{ products: HttpTypes.StoreProduct[]; count: number }>(
-      `/store/products`,
+  // Map Fake Store API products to Medusa's HttpTypes.StoreProduct format
+  const products: HttpTypes.StoreProduct[] = fakeStoreProducts.map((p: any) => ({
+    id: p.id.toString(),
+    title: p.title,
+    handle: p.id.toString(),
+    description: p.description,
+    thumbnail: p.image,
+    images: [{ id: p.id.toString(), url: p.image }],
+    collection: { id: p.category, title: p.category },
+    variants: [
       {
-        method: "GET",
-        query: {
-          limit,
-          offset,
-          region_id: region?.id,
-          fields:
-            "*variants.calculated_price,+variants.inventory_quantity,*variants.images,+metadata,+tags,",
-          ...queryParams,
+        id: `variant-${p.id}`,
+        title: "Default",
+        calculated_price: {
+          calculated_amount: (p.price * 100).toString(), // Convert to cents
+          original_amount: (p.price * 100).toString(),
+          currency_code: "usd",
         },
-        headers,
-        next,
-        cache: "force-cache",
-      }
-    )
-    .then(({ products, count }) => {
-      const nextPage = count > offset + limit ? pageParam + 1 : null
+        inventory_quantity: 100, // Fake inventory
+        prices: [
+          {
+            amount: (p.price * 100).toString(),
+            currency_code: "usd",
+          },
+        ],
+      },
+    ],
+    options: [],
+    tags: [],
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }));
 
-      return {
-        response: {
-          products,
-          count,
-        },
-        nextPage: nextPage,
-        queryParams,
-      }
-    })
+  const paginatedProducts = products.slice(offset, offset + limit)
+  const count = products.length
+
+  const nextPage = count > offset + limit ? pageParam + 1 : null
+
+  return {
+    response: {
+      products: paginatedProducts,
+      count,
+    },
+    nextPage,
+    queryParams,
+  }
 }
 
 /**
- * This will fetch 100 products to the Next.js cache and sort them based on the sortBy parameter.
- * It will then return the paginated products based on the page and limit parameters.
+ * This will fetch all products from the Fake Store API, sort them, and then paginate them.
  */
 export const listProductsWithSort = async ({
-  page = 0,
+  page = 1,
   queryParams,
   sortBy = "created_at",
   countryCode,
@@ -106,24 +98,23 @@ export const listProductsWithSort = async ({
 }> => {
   const limit = queryParams?.limit || 12
 
+  // Fetch all products
   const {
     response: { products, count },
   } = await listProducts({
-    pageParam: 0,
-    queryParams: {
-      ...queryParams,
-      limit: 100,
-    },
+    pageParam: 1,
+    queryParams: { ...queryParams, limit: 9999 }, // Fetch all to sort
     countryCode,
   })
 
+  // Sort products
   const sortedProducts = sortProducts(products, sortBy)
 
-  const pageParam = (page - 1) * limit
+  // Paginate sorted products
+  const offset = (page - 1) * limit
+  const paginatedProducts = sortedProducts.slice(offset, offset + limit)
 
-  const nextPage = count > pageParam + limit ? pageParam + limit : null
-
-  const paginatedProducts = sortedProducts.slice(pageParam, pageParam + limit)
+  const nextPage = count > offset + limit ? page + 1 : null
 
   return {
     response: {
