@@ -1,5 +1,7 @@
+import { listCategories } from "@lib/data/categories"
+import { listCollections } from "@lib/data/collections"
 import { listProducts } from "@lib/data/products"
-import { HttpTypes } from "@medusajs/types"
+import ApiVisualizer from "@modules/api-visualizer/components"
 
 export default async function ApiVisualizerPage({
   params,
@@ -9,15 +11,17 @@ export default async function ApiVisualizerPage({
   const {
     response: { products },
   } = await listProducts({ countryCode: params.countryCode })
+  const categories = await listCategories()
+  const { collections } = await listCollections()
 
   return (
     <div className="py-12">
       <div className="content-container">
-        <h1 className="text-2xl-semi mb-8">API Visualizer</h1>
-        <h2 className="text-xl-semi">Products</h2>
-        <pre className="bg-ui-bg-subtle p-4 mt-4 rounded-lg">
-          {JSON.stringify(products, null, 2)}
-        </pre>
+        <ApiVisualizer
+          products={products}
+          categories={categories}
+          collections={collections}
+        />
       </div>
     </div>
   )

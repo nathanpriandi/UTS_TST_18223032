@@ -1,27 +1,128 @@
-You're almost there! Your logs show that the product and collection pages are now working correctly (all the 200 status codes), which is excellent.
+Here is the step-by-step guide to add the other two APIs:
 
-You have two remaining, distinct errors.
+Step 1: Fetch More Data in the Server Component
+First, we need to get the data for categories and collections on the server, just like we do for products, and pass them to the client component.
 
-1. API Visualizer Crash (TypeError)
-Your API Visualizer page is still crashing with TypeError: Cannot read properties of undefined (reading 'products').
+File to edit: src/app/[countryCode]/(main)/api-visualizer/page.tsx/(main)/api-visualizer/page.tsx`]
 
-What's Happening: This error is identical to the one that was on your front page. The API Visualizer page (src/app/[countryCode]/(main)/api-visualizer/page.tsx) calls the listProducts() function/(main)/api-visualizer/page.tsx]. Your src/lib/data/products.tsfile **still contains a livefetchcall** to the Fake Store API. That API call is failing, causing the function to returnundefined. The page then tries to read undefined.products` and crashes.
-
-How to Fix It: You must edit src/lib/data/products.ts and replace all the fetch() calls with a hardcoded list of product data, just as you did for categories.ts and collections.ts.
-
-2. Category Pages Crash (DYNAMIC_SERVER_USAGE)
-Your category pages (like /us/categories/electronics) are crashing with a 500 error and the message digest: 'DYNAMIC_SERVER_USAGE'.
-
-What's Happening: This is a Next.js error. It means the page is using dynamic features but is not being rendered dynamically. In this case, your category page src/app/[countryCode]/(main)/categories/[...category]/page.tsx accesses searchParams to handle sorting and pagination/(main)/categories/[...category]/page.tsx`].
-
-How to Fix It: You need to explicitly tell Next.js to render this page dynamically. Add this line to the very top of src/app/[countryCode]/(main)/categories/[...category]/page.tsx:
+Import listCategories and listCollections at the top of the file:
 
 TypeScript
 
-export const dynamic = "force-dynamic"
-Summary of Next Steps
-Edit src/lib/data/products.ts to remove all fetch calls and return hardcoded product data.
+import { listCategories } from "@lib/data/categories"
+import { listCollections } from "@lib/data/collections"
+import { listProducts } from "@lib/data/products" // This one is already here
+Fetch the new data inside the ApiVisualizerPage function:
 
-Edit src/app/[countryCode]/(main)/categories/[...category]/page.tsx and add export const dynamic = "force-dynamic" to the top of the file.
+TypeScript
 
-After you make those two changes, commit and redeploy. That should clear up these last errors.
+export default async function ApiVisualizerPage() {
+  // You already have this line:
+  const productResponse = await listProducts({}).catch((err) => {
+    console.error(err)
+    return null
+  })
+
+  // Add these two new data fetching calls:
+  const categoriesResponse = await listCategories().catch((err) => {
+    console.error(err)
+    return null
+  })
+
+  const { collections: collectionsResponse } = await listCollections().catch((err) => {
+    console.error(err)
+    return { collections: null }
+  })
+  // ...
+Pass all three data sets as props to the <ApiVisualizer /> component at the end of the file.
+
+Change this:
+
+TypeScript
+
+<ApiVisualizer
+  response={productResponse ? productResponse.response.products : null}
+/>
+To this:
+
+TypeScript
+
+<ApiVisualizer
+  products={productResponse ? productResponse.response.products : null}
+  categories={categoriesResponse}
+  collections={collectionsResponse}
+/>
+Step 2: Update the Client Component to Display All 3 APIs
+Now, we just need to update the client component to accept the new props and display a button for each one.
+
+File to edit: src/pages/api-visualizer.tsx
+
+Update the ApiVisualizerProps interface to accept the new props:
+
+Change this:
+
+TypeScript
+
+interface ApiVisualizerProps {
+  response: any
+}
+To this:
+
+TypeScript
+
+interface ApiVisualizerProps {
+  products: any
+  categories: any
+  collections: any
+}
+Update the ApiVisualizer component signature to use the new props:
+
+Change this:
+
+TypeScript
+
+const ApiVisualizer = ({ response: productResponse }: ApiVisualizerProps) => {
+To this:
+
+TypeScript
+
+const ApiVisualizer = ({
+  products,
+  categories,
+  collections,
+}: ApiVisualizerProps) => {
+Update the apis array to include all three data sources:
+
+Change this:
+
+TypeScript
+
+const apis = [
+  {
+    name: "Products",
+    url: "/api/products",
+    response: productResponse,
+  },
+]
+To this:
+
+TypeScript
+
+const apis = [
+  {
+    name: "Products",
+    url: "/api/products",
+    response: products, // Use the new 'products' prop
+  },
+  {
+    name: "Categories",
+    url: "/api/categories",
+    response: categories, // Use the new 'categories' prop
+  },
+  {
+    name: "Collections",
+    url: "/api/collections",
+    response: collections, // Use the new 'collections' prop
+  },
+]
+After you save these two files, commit, and redeploy, your API Visualizer page will show three buttons and allow you to switch between the JSON data for Products, Categories, and Collections.
