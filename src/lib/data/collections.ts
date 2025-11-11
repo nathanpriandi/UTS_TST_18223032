@@ -2,6 +2,13 @@
 
 import { HttpTypes } from "@medusajs/types"
 
+const FAKE_STORE_CATEGORIES = [
+  "electronics",
+  "jewelery",
+  "men's clothing",
+  "women's clothing",
+]
+
 /**
  * Mocked function to simulate retrieving a collection.
  * Returns null as collections are not part of the Fake Store API.
@@ -13,17 +20,13 @@ export const retrieveCollection = async (
 }
 
 /**
- * Fetches categories from the Fake Store API and maps them to the Medusa collection format.
- * This is used by the FeaturedProducts component on the homepage.
+ * Returns a hardcoded list of categories mapped to the Medusa collection format.
+ * This prevents build failures if the Fake Store API is unavailable.
  */
 export const listCollections = async (
   queryParams: Record<string, string> = {}
 ): Promise<{ collections: HttpTypes.StoreCollection[]; count: number }> => {
-  const response = await fetch("https://fakestoreapi.com/products/categories")
-  if (!response.ok) {
-    throw new Error("Failed to fetch categories from Fake Store API")
-  }
-  const fakeStoreCategories: string[] = await response.json()
+  const fakeStoreCategories: string[] = FAKE_STORE_CATEGORIES
 
   const collections: HttpTypes.StoreCollection[] = fakeStoreCategories.map(
     (name: string, index: number) => ({
@@ -40,11 +43,11 @@ export const listCollections = async (
 
 /**
  * Mocked function to simulate retrieving a collection by its handle.
- * Returns null as collections are not part of the Fake Store API.
+ * Returns a collection from the hardcoded list.
  */
 export const getCollectionByHandle = async (
   handle: string
 ): Promise<HttpTypes.StoreCollection | null> => {
-  const collections = await listCollections()
-  return collections.collections.find((c) => c.handle === handle) || null
+  const { collections } = await listCollections()
+  return collections.find((c) => c.handle === handle) || null
 }
