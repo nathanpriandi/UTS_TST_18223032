@@ -1,128 +1,26 @@
-Here is the step-by-step guide to add the other two APIs:
+The problem is that the <pre> tag (which displays the JSON) doesn't wrap long lines of text by default, so the text just overflows its box.
 
-Step 1: Fetch More Data in the Server Component
-First, we need to get the data for categories and collections on the server, just like we do for products, and pass them to the client component.
+Here’s the simple one-line fix.
 
-File to edit: src/app/[countryCode]/(main)/api-visualizer/page.tsx/(main)/api-visualizer/page.tsx`]
-
-Import listCategories and listCollections at the top of the file:
-
-TypeScript
-
-import { listCategories } from "@lib/data/categories"
-import { listCollections } from "@lib/data/collections"
-import { listProducts } from "@lib/data/products" // This one is already here
-Fetch the new data inside the ApiVisualizerPage function:
-
-TypeScript
-
-export default async function ApiVisualizerPage() {
-  // You already have this line:
-  const productResponse = await listProducts({}).catch((err) => {
-    console.error(err)
-    return null
-  })
-
-  // Add these two new data fetching calls:
-  const categoriesResponse = await listCategories().catch((err) => {
-    console.error(err)
-    return null
-  })
-
-  const { collections: collectionsResponse } = await listCollections().catch((err) => {
-    console.error(err)
-    return { collections: null }
-  })
-  // ...
-Pass all three data sets as props to the <ApiVisualizer /> component at the end of the file.
-
-Change this:
-
-TypeScript
-
-<ApiVisualizer
-  response={productResponse ? productResponse.response.products : null}
-/>
-To this:
-
-TypeScript
-
-<ApiVisualizer
-  products={productResponse ? productResponse.response.products : null}
-  categories={categoriesResponse}
-  collections={collectionsResponse}
-/>
-Step 2: Update the Client Component to Display All 3 APIs
-Now, we just need to update the client component to accept the new props and display a button for each one.
+🎯 How to Fix It
+You just need to add a couple of Tailwind classes to the <pre> tag to tell it to wrap the text.
 
 File to edit: src/pages/api-visualizer.tsx
 
-Update the ApiVisualizerProps interface to accept the new props:
+Find the <pre> tag near the end of the file.
 
-Change this:
+Add the whitespace-pre-wrap and overflow-x-auto classes to its className.
+
+Change this line:
 
 TypeScript
 
-interface ApiVisualizerProps {
-  response: any
-}
+<pre className="bg-ui-bg-subtle p-4">
 To this:
 
 TypeScript
 
-interface ApiVisualizerProps {
-  products: any
-  categories: any
-  collections: any
-}
-Update the ApiVisualizer component signature to use the new props:
+<pre className="bg-ui-bg-subtle p-4 whitespace-pre-wrap overflow-x-auto">
+This will make the long lines of JSON wrap nicely within the box, and if any line is still too long, the box will scroll horizontally instead of breaking your page layout.
 
-Change this:
-
-TypeScript
-
-const ApiVisualizer = ({ response: productResponse }: ApiVisualizerProps) => {
-To this:
-
-TypeScript
-
-const ApiVisualizer = ({
-  products,
-  categories,
-  collections,
-}: ApiVisualizerProps) => {
-Update the apis array to include all three data sources:
-
-Change this:
-
-TypeScript
-
-const apis = [
-  {
-    name: "Products",
-    url: "/api/products",
-    response: productResponse,
-  },
-]
-To this:
-
-TypeScript
-
-const apis = [
-  {
-    name: "Products",
-    url: "/api/products",
-    response: products, // Use the new 'products' prop
-  },
-  {
-    name: "Categories",
-    url: "/api/categories",
-    response: categories, // Use the new 'categories' prop
-  },
-  {
-    name: "Collections",
-    url: "/api/collections",
-    response: collections, // Use the new 'collections' prop
-  },
-]
-After you save these two files, commit, and redeploy, your API Visualizer page will show three buttons and allow you to switch between the JSON data for Products, Categories, and Collections.
+After you redeploy this change, the UI should look perfect.

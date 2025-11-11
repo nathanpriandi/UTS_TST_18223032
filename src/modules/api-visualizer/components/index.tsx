@@ -55,7 +55,7 @@ const ApiVisualizer = ({
           })}
         </div>
         <div className="col-span-2">
-          <pre className="bg-ui-bg-subtle p-4 rounded-lg h-full">
+          <pre className="bg-ui-bg-subtle p-4 rounded-lg h-full whitespace-pre-wrap overflow-x-auto">
             {JSON.stringify(response, null, 2)}
           </pre>
         </div>
